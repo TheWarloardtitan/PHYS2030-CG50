@@ -36,8 +36,6 @@ jobs:
             "https://git.planet-casio.com/Lephenixnoir/GiteaPC/raw/branch/master/install.sh" \
             -o /tmp/giteapc-install.sh
 
-          # The installer asks for confirmation.
-          # GitHub Actions is non-interactive, so answer yes automatically.
           yes Y | bash /tmp/giteapc-install.sh || true
 
           echo "Searching for GiteaPC..."
@@ -83,7 +81,7 @@ jobs:
         run: |
           set -e
 
-          giteapc install \
+          yes Y | giteapc install \
             Lephenixnoir/fxsdk:noudisks2 \
             Lephenixnoir/sh-elf-binutils \
             Lephenixnoir/sh-elf-gcc
@@ -93,14 +91,14 @@ jobs:
         run: |
           set -e
 
-          giteapc install \
+          yes Y | giteapc install \
             Lephenixnoir/OpenLibm \
             Vhex-Kernel-Core/fxlibc
 
-          giteapc install \
+          yes Y | giteapc install \
             Lephenixnoir/sh-elf-gcc
 
-          giteapc install \
+          yes Y | giteapc install \
             Lephenixnoir/gint
 
       - name: Verify fxSDK
