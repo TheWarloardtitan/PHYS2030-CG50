@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
 
     steps:
       - uses: actions/checkout@v4
@@ -19,23 +19,46 @@ jobs:
         run: |
           curl -L "https://git.planet-casio.com/Lephenixnoir/GiteaPC/raw/branch/master/install.sh" -o /tmp/giteapc.sh
           bash /tmp/giteapc.sh
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Toolchain
+          echo "Finding GiteaPC installation..."
+          find "$HOME" /usr/local -type f -name giteapc 2>/dev/null || true
+
+          GITEAPC="$(find "$HOME" /usr/local -type f -name giteapc 2>/dev/null | head -n 1)"
+
+          if [ -z "$GITEAPC" ]; then
+            echo "ERROR: GiteaPC installer completed but giteapc executable was not found."
+            exit 1
+          fi
+
+          echo "Found GiteaPC at: $GITEAPC"
+          chmod +x "$GITEAPC"
+          echo "$(dirname "$GITEAPC")" >> "$GITHUB_PATH"
+
+      - name: Verify GiteaPC
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
+          echo "PATH=$PATH"
+          which giteapc
+          giteapc --help
+
+      - name: Install CG50 toolchain
+        run: |
           giteapc install Lephenixnoir/fxsdk:noudisks2 Lephenixnoir/sh-elf-binutils Lephenixnoir/sh-elf-gcc
           giteapc install Lephenixnoir/OpenLibm Vhex-Kernel-Core/fxlibc
           giteapc install Lephenixnoir/sh-elf-gcc
           giteapc install Lephenixnoir/gint
 
-      - name: Build
+      - name: Build PHYS2030
         run: |
-          export PATH="$HOME/.local/bin:$PATH"
+          which fxsdk
           fxsdk build-cg
+
+      - name: Locate output
+        run: |
+          find . -type f -name "*.g3a" -print
 
       - name: Upload G3A
         uses: actions/upload-artifact@v4
         with:
           name: PHYS2030-CG50
-          path: PHYS2030.g3a
+          path: |
+            **/*.g3a
