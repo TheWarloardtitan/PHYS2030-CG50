@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.15)
+project(PHYS2030 C)
+include(GenerateG3A)
+find_package(Gint 2.9 REQUIRED)
+add_executable(PHYS2030 src/main.c)
+target_compile_options(PHYS2030 PRIVATE -Wall -Wextra -Os)
+target_link_libraries(PHYS2030 Gint::Gint)
+generate_g3a(TARGET PHYS2030 OUTPUT "PHYS2030.g3a" NAME "PHYS2030" VERSION "01.00.0000")

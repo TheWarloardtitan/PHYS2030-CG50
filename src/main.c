@@ -1,0 +1,9 @@
+#include <gint/display.h>
+#include <gint/keyboard.h>
+#include <stdio.h>
+static void heading(char const*s){dclear(C_WHITE);dtext(10,8,C_BLACK,s);dline(8,28,375,28,C_BLACK);}
+static void wait_exit(void){dtext(10,205,C_DARK,"EXIT: back");dupdate();while(getkey().key!=KEY_EXIT){}}
+static void formulas(void){heading("PHYS2030 - Formula Library");dtext(10,40,C_BLACK,"v_avg = dx / dt");dtext(10,60,C_BLACK,"vf = vi + a t");dtext(10,80,C_BLACK,"dx = vi t + 1/2 a t^2");dtext(10,100,C_BLACK,"vf^2 = vi^2 + 2 a dx");dtext(10,120,C_BLACK,"dx = 1/2 (vi + vf) t");dtext(10,145,C_BLACK,"Projectile: ax = 0");dtext(10,165,C_BLACK,"Projectile: ay = -9.80 m/s^2");wait_exit();}
+static void kine(void){double vi=4,a=2.8,t=3,vf=vi+a*t;char b[96];heading("Kinematics - worked example");dtext(10,40,C_BLACK,"Find: vf");dtext(10,62,C_BLACK,"Formula: vf = vi + a t");snprintf(b,sizeof b,"Substitute: vf = %.2f + (%.2f)(%.2f)",vi,a,t);dtext(10,84,C_BLACK,b);snprintf(b,sizeof b,"Result: vf = %.2f m/s",vf);dtext(10,106,C_BLACK,b);wait_exit();}
+static void stub(char const*s){heading(s);dtext(10,55,C_BLACK,"Module scaffold installed.");dtext(10,80,C_BLACK,"Full solver follows after");dtext(10,100,C_BLACK,"first hardware build test.");wait_exit();}
+int main(void){char const*items[]={"Kinematics","Projectile Motion","Vector Tools","X(t) Functions","Graph Analysis","Circular Motion","Formula Library"};int n=7,sel=0;while(1){dclear(C_WHITE);dtext(10,7,C_BLACK,"PHYS2030 Physics Solver");dline(8,27,375,27,C_BLACK);for(int i=0;i<n;i++){char s[64];snprintf(s,sizeof s,"%c %s",i==sel?'>':' ',items[i]);dtext(18,40+i*22,C_BLACK,s);}dtext(10,205,C_DARK,"UP/DOWN  EXE: select  EXIT: quit");dupdate();key_event_t e=getkey();if(e.key==KEY_UP)sel=(sel+n-1)%n;else if(e.key==KEY_DOWN)sel=(sel+1)%n;else if(e.key==KEY_EXIT)return 0;else if(e.key==KEY_EXE){if(sel==0)kine();else if(sel==6)formulas();else stub(items[sel]);}}}
