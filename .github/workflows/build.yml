@@ -8,57 +8,141 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout project
+        uses: actions/checkout@v4
 
-      - name: Dependencies
+      - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y git curl cmake make gcc g++ python3 python3-pil libpng-dev libusb-1.0-0-dev pkg-config
+          sudo apt-get install -y \
+            git \
+            curl \
+            cmake \
+            make \
+            gcc \
+            g++ \
+            python3 \
+            python3-pil \
+            libpng-dev \
+            libusb-1.0-0-dev \
+            pkg-config
 
       - name: Install GiteaPC
+        shell: bash
         run: |
-          curl -L "https://git.planet-casio.com/Lephenixnoir/GiteaPC/raw/branch/master/install.sh" -o /tmp/giteapc.sh
-          bash /tmp/giteapc.sh
+          set -e
 
-          echo "Finding GiteaPC installation..."
-          find "$HOME" /usr/local -type f -name giteapc 2>/dev/null || true
+          curl -L \
+            "https://git.planet-casio.com/Lephenixnoir/GiteaPC/raw/branch/master/install.sh" \
+            -o /tmp/giteapc-install.sh
 
-          GITEAPC="$(find "$HOME" /usr/local -type f -name giteapc 2>/dev/null | head -n 1)"
+          # The installer asks for confirmation.
+          # GitHub Actions is non-interactive, so answer yes automatically.
+          yes Y | bash /tmp/giteapc-install.sh || true
+
+          echo "Searching for GiteaPC..."
+
+          GITEAPC="$(find "$HOME" /usr/local /usr/bin \
+            -type f \
+            -name giteapc \
+            2>/dev/null \
+            | head -n 1)"
 
           if [ -z "$GITEAPC" ]; then
-            echo "ERROR: GiteaPC installer completed but giteapc executable was not found."
+            echo "ERROR: giteapc executable was not found."
+            echo "Contents of ~/.local/bin:"
+            ls -la "$HOME/.local/bin" 2>/dev/null || true
             exit 1
           fi
 
-          echo "Found GiteaPC at: $GITEAPC"
+          echo "Found GiteaPC:"
+          echo "$GITEAPC"
+
           chmod +x "$GITEAPC"
-          echo "$(dirname "$GITEAPC")" >> "$GITHUB_PATH"
+
+          GITEAPC_DIR="$(dirname "$GITEAPC")"
+
+          echo "$GITEAPC_DIR" >> "$GITHUB_PATH"
 
       - name: Verify GiteaPC
+        shell: bash
         run: |
-          echo "PATH=$PATH"
-          which giteapc
+          set -e
+
+          echo "PATH:"
+          echo "$PATH"
+
+          echo "GiteaPC location:"
+          command -v giteapc
+
+          echo "Testing GiteaPC:"
           giteapc --help
 
-      - name: Install CG50 toolchain
+      - name: Install fxSDK and SH toolchain
+        shell: bash
         run: |
-          giteapc install Lephenixnoir/fxsdk:noudisks2 Lephenixnoir/sh-elf-binutils Lephenixnoir/sh-elf-gcc
-          giteapc install Lephenixnoir/OpenLibm Vhex-Kernel-Core/fxlibc
-          giteapc install Lephenixnoir/sh-elf-gcc
-          giteapc install Lephenixnoir/gint
+          set -e
+
+          giteapc install \
+            Lephenixnoir/fxsdk:noudisks2 \
+            Lephenixnoir/sh-elf-binutils \
+            Lephenixnoir/sh-elf-gcc
+
+      - name: Install fxSDK libraries
+        shell: bash
+        run: |
+          set -e
+
+          giteapc install \
+            Lephenixnoir/OpenLibm \
+            Vhex-Kernel-Core/fxlibc
+
+          giteapc install \
+            Lephenixnoir/sh-elf-gcc
+
+          giteapc install \
+            Lephenixnoir/gint
+
+      - name: Verify fxSDK
+        shell: bash
+        run: |
+          set -e
+
+          echo "fxsdk:"
+          command -v fxsdk
+
+          echo "SH compiler:"
+          command -v sh-elf-gcc
+
+          fxsdk --version || true
 
       - name: Build PHYS2030
+        shell: bash
         run: |
-          which fxsdk
+          set -e
+
+          echo "Building Casio fx-CG50 add-in..."
           fxsdk build-cg
 
-      - name: Locate output
+      - name: Find generated G3A
+        shell: bash
         run: |
+          set -e
+
+          echo "Generated G3A files:"
           find . -type f -name "*.g3a" -print
 
-      - name: Upload G3A
+          G3A_COUNT="$(find . -type f -name "*.g3a" | wc -l)"
+
+          if [ "$G3A_COUNT" -eq 0 ]; then
+            echo "ERROR: Build finished but no .g3a file was found."
+            exit 1
+          fi
+
+      - name: Upload PHYS2030 G3A
         uses: actions/upload-artifact@v4
         with:
           name: PHYS2030-CG50
           path: |
             **/*.g3a
+          if-no-files-found: error
